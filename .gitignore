@@ -12,3 +12,9 @@
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+
+#remove this so we can use dep correctly
+vendor/*
+
+#don't show this stuff
+local.env

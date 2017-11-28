@@ -1,0 +1,9 @@
+version: '3'
+services:
+  musicstalker:
+    build: .
+    env_file:
+      - local.env
+    command: cryptoRobotDog
+    ports:
+    - "8080:8080"
