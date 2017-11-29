@@ -45,6 +45,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/skratchdot/open-golang"
+  packages = ["open"]
+  revision = "75fb7ed4208cf72d323d7d02fd1a5964a7a9073c"
+
+[[projects]]
+  branch = "master"
   name = "github.com/zmb3/spotify"
   packages = ["."]
   revision = "40a7a169da269b3ba5529949796441938d40bce3"
@@ -70,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b1f19e7c84ddc8df5c043ee41232f34089c179afba580f17e9a5f15d017b0bbf"
+  inputs-digest = "044dcd54a4b4de80238656b58c82d8b6f8cb5062c7902babd6f93f4e734c23e5"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/ChimeraCoder/anaconda"
@@ -12,10 +13,12 @@ import (
 
 var twitapi *anaconda.TwitterApi
 
+var spotifyClient *spotify.Client
+
 const redirectURI = "http://localhost:8080/callback"
 
 var (
-	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopeUserLibraryRead)
+	auth  = spotify.NewAuthenticator(redirectURI, spotify.ScopePlaylistModifyPublic)
 	ch    = make(chan *spotify.Client)
 	state = "abc123"
 )
@@ -33,11 +36,14 @@ func main() {
 	})
 	go http.ListenAndServe(":8080", nil)
 
-	url := auth.AuthURL(state)
-	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
+	authUrl := auth.AuthURL(state)
+	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", authUrl)
+
+	resp, err := http.Get(authUrl)
+	fmt.Println("HTTP RESPONSE", resp)
 
 	// wait for auth to complete
-	spotifyClient := <-ch
+	spotifyClient = <-ch
 
 	// use the client to make calls that require authorization
 	user, err := spotifyClient.CurrentUser()
@@ -46,26 +52,60 @@ func main() {
 	}
 	fmt.Println("You are logged in as:", user.ID)
 
-	twitterUsers := os.Args[1]
+	//pull arg for playlist name
+	playlistName := os.Args[2]
 
-	userObjs, err := twitapi.GetUsersLookup(twitterUsers, nil)
-	fmt.Println("Users:")
-	for _, item := range userObjs {
-		fmt.Println("   ", item.Name)
+	var playlistToEdit spotify.SimplePlaylist
+
+	//Get Playlists for User that we are logged in as
+	playlists, err := spotifyClient.GetPlaylistsForUser(user.ID)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, item := range playlists.Playlists {
+		if item.Name == playlistName {
+			playlistToEdit = item
+		}
 	}
 
+	// //Add Specific Track to the playlist
+	// newPlaylist, err := spotifyClient.AddTracksToPlaylist(user.ID, playlistToEdit.ID, "6LGabqtvan3SGYcL4guT0o")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println("New Playlist ID", newPlaylist)
+
+	twitterUsers := os.Args[1]
+
+	userObj, err := twitapi.GetUsersShow(twitterUsers, nil)
 	if err != nil {
 		log.Println("Error while querying twitter API", err)
 		return
 	}
 
-	currentUserTracks, err := spotifyClient.CurrentUsersTracks()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Saved Songs:")
-	for _, item := range currentUserTracks.Tracks {
-		fmt.Println("   ", item.Name)
+	twitterStream := twitapi.PublicStreamFilter(url.Values{"follow": []string{userObj.IdStr}})
+
+	fmt.Println("Stream started, let the stalking commence")
+
+	//twitterStream := api.PublicStreamSample(nil)
+	for {
+		x := <-twitterStream.C
+		switch tweet := x.(type) {
+		case anaconda.Tweet:
+			//Add Specific Track to the playlist
+			println("TWEET: ", tweet.ExtendedTweet.FullText)
+			newPlaylist, err := spotifyClient.AddTracksToPlaylist(user.ID, playlistToEdit.ID, "6LGabqtvan3SGYcL4guT0o")
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println("New Playlist ID", newPlaylist)
+
+			return
+		case anaconda.StatusDeletionNotice:
+			// pass
+		default:
+			fmt.Printf("unknown type(%T) : %v \n", x, x)
+		}
 	}
 
 	results, err := spotifyClient.Search("holiday", spotify.SearchTypePlaylist|spotify.SearchTypeAlbum)

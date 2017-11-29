@@ -4,6 +4,6 @@ services:
     build: .
     env_file:
       - local.env
-    command: cryptoRobotDog
+    command: cryptoRobotDog '2017 List'
     ports:
     - "8080:8080"
